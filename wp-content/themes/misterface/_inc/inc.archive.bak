@@ -1,0 +1,172 @@
+<?php
+require_once('../../../../wp-blog-header.php');
+$work = get_post($_GET['id'],ARRAY_A);
+$post_meta = get_post_meta($_GET['id']);
+
+$work_data = NULL;
+for($i=0;$i<count($post_meta);$i++){
+  $work_data[$i] = $post_meta['archive_'.$i];
+}
+
+
+$works = NULL;
+for($i=0;$i<13;$i++){
+  $tmp = explode("|",$work_data[$i][0]);
+  $works[$i]['title'] = $tmp[2];
+  $works[$i]['brief'] = $tmp[3];
+  $works[$i]['type'] = $tmp[0];
+  $works[$i]['media'] = $tmp[1];
+}
+
+$image = wp_get_attachment_image_src(get_post_thumbnail_id($_GET['id']),array(180,166));
+
+?>
+<style>
+#work_detail { width:1024px; margin:auto; margin-top:100px;}
+#work_detail .left { width:204px; float:left; }
+#work_detail .left h1 { font-family:Conv_NewsCycle-Regular,Helvetica, Arial, Times, Serif; font-size:16pt; margin-bottom:0px; }
+#work_detail .left h2 { font-family:Conv_NewsCycle-Regular,Helvetica, Arial, Times, Serif; font-size:13pt; margin-top:-5px; }
+#work_detail .left p { font-family:Roboto-Light-webfont,Helvetica, Arial, Times, Serif; font-size:9pt; font-weight:bold !important; line-height:16px;  }
+
+#work_detail .left .picture { width:204px; height:150px; }
+#work_detail .middle { width:540px; float:left; margin-left:20px;  }
+#work_detail .middle .container { width:540px; }
+#work_detail .middle .player { display:none;}
+#work_detail .middle .audio { display:none;}
+#work_detail .middle .image { display:none;}
+#work_detail .right { width:259px;float:left; }
+#work_detail .right ul { margin:0; padding:0; list-style:none;}
+#work_detail .right ul li h3 { margin:0; padding:0;
+margin-left:30px; }
+#work_detail .right ul li h3 a { font-family: Conv_NewsCycle-Regular,Helvetica, Arial, Times, Serif;
+font-size: 11pt;
+color: #fff;
+text-decoration: none; 
+
+} 
+
+#work_detail .right ul li h3 a:hover { color:#86ed00; } 
+#work_detail .right ul li p { font-family: Conv_NewsCycle-Regular,Helvetica, Arial, Times, Serif;
+font-size: 9pt;
+margin-top: 0;
+margin-left: 30px;
+ margin-bottom:0;
+ line-height:15px;
+ font-weight:bold;
+}
+#work_detail .right ul li img { margin-left:20px;}
+</style>
+<div id="work_detail">
+  <div class="left">
+    <div class="picture" style="background: url(<?php echo $image[0] ?>) no-repeat top center;"></div>
+    <h1><?php echo $work['post_title']; ?></h1>
+    <p><?php echo apply_filters('the_content', strip_shortcodes($work['post_content'])); ?>
+
+</p>
+  </div>
+  <div class="middle">
+    <div id="container">
+      <div class="player">
+        <iframe id="player" src="" frameborder="0" width="540" height="320"></iframe></div>
+      <div class="image"><img id="wimg" src="" style=" max-width:540px;" /></div>
+      <div class="audio"><?php include_once("inc.jplayer.php"); ?></div>
+    </div>
+    
+  </div>
+  <div class="right">
+    <?php
+	$pattern = get_shortcode_regex();
+	preg_match('/'.$pattern.'/s', $work['post_content'], $matches);
+	if(is_array($matches) && $matches[2] == 'work') {
+   	$shortcode = $matches[0];
+   	echo do_shortcode($shortcode);
+	}
+	?>
+    <ul>
+      <?php
+	  $first = NULL;
+	  for($i=0;$i<count($works);$i++){
+		$tmp = $works[$i];
+		if($tmp['title']!=""){
+		  if($tmp['type']=="video"){
+	        echo '<li><h3><a href="javascript:loadVideo(\''.$tmp['media'].'\')">'.$tmp['title'].'</a></h3><p>'.$tmp['brief'].'</p><img src="'.get_template_directory_uri().'/_img/bck_work_line.png" width="46" height="1"></li>';
+		  }else if($tmp['type']=="image"){
+	        echo '<li><h3><a href="javascript:loadImage(\''.$tmp['media'].'\');">'.$tmp['title'].'</a></h3><p>'.$tmp['brief'].'</p><img src="'.get_template_directory_uri().'/_img/bck_work_line.png" width="46" height="1"></li>';
+		  }else if($tmp['type']=="audio"){
+	        echo '<li><h3><a href="javascript:loadAudio(\''.$tmp['media'].'\');">'.$tmp['title'].'</a></h3><p>'.$tmp['brief'].'</p><img src="'.get_template_directory_uri().'/_img/bck_work_line.png" width="46" height="1"></li>';
+		  }
+		  if($i==0){ $first = $tmp; }
+		}
+	  }
+	  ?>
+      
+    </ul>
+  </div>
+  <br class="clear" />
+</div>
+
+
+<script>
+
+function loadVideo(vid){
+   try{
+    $("#jquery_jplayer_1").jPlayer("stop");
+    stopVideo();
+  }catch(err){ }
+  $('.player').show();
+  $('.audio').hide();
+  $('.image').hide();
+  $("#player").attr("src","");
+  $("#player").attr("src",'http://www.youtube.com/embed/'+vid+'?rel=0&wmode=Opaque&enablejsapi=1');
+}
+
+function loadImage(url){
+  try{
+    $("#jquery_jplayer_1").jPlayer("stop");
+    stopVideo();
+  }catch(err){ }
+  $('.image').show();
+  $('.player').hide();
+  $('.audio').hide();
+  $('#wimg').attr("src",url);
+}
+
+function stopVideo(){
+	  //$(".player").fadeOut(200);
+  $("#player").attr("src","");
+}
+</script>
+
+<script type="text/javascript">
+    $(document).ready(function(){
+      $("#jquery_jplayer_1").jPlayer({
+        ready: function (){ },
+        swfPath: "/js",
+        supplied: "mp3"
+      });
+	  
+	  $('.onClickCloseWork').click(function(){ 
+	    $("#jquery_jplayer_1").jPlayer("stop");
+	  });
+	  
+	    <?php
+  if($first['type']=="video"){ echo 'loadVideo("'.$first['media'].'");'; }
+  if($first['type']=="audio"){ echo 'loadAudio("'.$first['media'].'");'; }
+  if($first['type']=="image"){ echo 'loadImage("'.$first['media'].'");'; }
+	  ?>
+	  
+	  
+    });
+	
+	function loadAudio(url){
+	  try{
+    $("#jquery_jplayer_1").jPlayer("stop");
+    stopVideo();
+  }catch(err){ }
+	  $('.audio').show();
+	  $('.player').hide();
+	  $('.image').hide();
+	  $("#jquery_jplayer_1").jPlayer("setMedia", { mp3: url, });
+	  $("#jquery_jplayer_1").jPlayer("play");
+	}
+  </script>
